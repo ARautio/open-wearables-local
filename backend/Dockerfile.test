@@ -1,0 +1,26 @@
+FROM python:3.13-slim
+
+    RUN apt-get update && \
+    apt-get install -y --no-install-recommends build-essential libpq-dev libpq5 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+    COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+    WORKDIR /root_project
+
+    COPY uv.lock pyproject.toml ./
+    COPY . .
+
+    # Remove the local .python-version pin (3.11.9) — the image already has 3.13
+    RUN rm -f .python-version
+
+    ENV VIRTUAL_ENV=/opt/venv
+    RUN uv venv $VIRTUAL_ENV
+    ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+    ENV UV_PROJECT_ENVIRONMENT=/opt/venv
+
+    # Install all deps including dev group (pytest, factory-boy, etc.)
+    RUN uv sync --locked --group dev
+
+    CMD ["uv", "run", "pytest"]

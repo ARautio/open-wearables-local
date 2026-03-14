@@ -161,8 +161,19 @@ class PolarWorkouts(BaseWorkoutsTemplate):
         workouts_data = self.get_workouts_from_api(db, user_id, **kwargs)
         workouts = [PolarExerciseJSON(**w) for w in workouts_data]
 
+        if not workouts:
+            return 0
+
+        # Skip workouts already in the database to avoid duplicate-key errors.
+        external_ids = {w.id for w in workouts if w.id}
+        existing_ids = self.workout_repo.get_existing_external_ids(
+            db, user_id, self.provider_name, external_ids
+        )
+
         count = 0
         for record, detail in self._build_bundles(workouts, user_id):
+            if record.external_id in existing_ids:
+                continue
             created_record = event_record_service.create(db, record)
             detail_for_record = detail.model_copy(update={"record_id": created_record.id})
             event_record_service.create_detail(db, detail_for_record)

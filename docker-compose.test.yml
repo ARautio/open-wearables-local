@@ -1,0 +1,61 @@
+services:
+  test-db:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: open_wearables_test
+      POSTGRES_USER: open-wearables
+      POSTGRES_PASSWORD: open-wearables
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U open-wearables -d open_wearables_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  test-runner:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.test
+    environment:
+      - ENV=test
+      - TEST_DATABASE_URL=postgresql+psycopg://open-wearables:open-wearables@test-db:5432/open_wearables_test
+      - SECRET_KEY=test-secret-key-for-testing-only
+      - MASTER_KEY=dGVzdC1tYXN0ZXIta2V5LWZvci10ZXN0aW5nLW9ubHk=
+      # DB settings (used by app config loader)
+      - DB_HOST=test-db
+      - DB_PORT=5432
+      - DB_NAME=open_wearables_test
+      - DB_USER=open-wearables
+      - DB_PASSWORD=open-wearables
+      # Redis is mocked in tests — dummy value to satisfy config validation
+      - REDIS_HOST=localhost
+      - REDIS_PORT=6379
+      # Provider credentials — not used in tests, satisfy config validation
+      - POLAR_CLIENT_ID=test
+      - POLAR_CLIENT_SECRET=test
+      - POLAR_REDIRECT_URI=http://localhost/callback
+      - SUUNTO_CLIENT_ID=test
+      - SUUNTO_CLIENT_SECRET=test
+      - SUUNTO_REDIRECT_URI=http://localhost/callback
+      - SUUNTO_SUBSCRIPTION_KEY=test
+      - GARMIN_CLIENT_ID=test
+      - GARMIN_CLIENT_SECRET=test
+      - GARMIN_REDIRECT_URI=http://localhost/callback
+      - WHOOP_CLIENT_ID=test
+      - WHOOP_CLIENT_SECRET=test
+      - WHOOP_REDIRECT_URI=http://localhost/callback
+      - STRAVA_CLIENT_ID=test
+      - STRAVA_CLIENT_SECRET=test
+      - STRAVA_REDIRECT_URI=http://localhost/callback
+      - STRAVA_WEBHOOK_VERIFY_TOKEN=test
+      - AWS_BUCKET_NAME=test
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_REGION=eu-north-1
+      - SQS_QUEUE_URL=https://sqs.eu-north-1.amazonaws.com/000000000000/test-queue
+      - RESEND_API_KEY=test
+      - SENTRY_ENABLED=False
+      - ADMIN_EMAIL=admin@admin.com
+      - ADMIN_PASSWORD=test-password
+    depends_on:
+      test-db:
+        condition: service_healthy

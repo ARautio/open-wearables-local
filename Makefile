@@ -26,9 +26,14 @@ stop:	## Stops running instance
 down:	## Kills running instance
 	$(DOCKER_COMMAND) down
 
-test:	## Run the tests.
+test:	## Run the tests locally (requires uv and local Python).
 	export ENV=backend/config/.env.test && \
 	cd backend && uv run pytest -v --cov=app
+
+test-docker:	## Run the tests in Docker (no local install needed).
+	docker compose -f docker-compose.test.yml build test-runner
+	docker compose -f docker-compose.test.yml run --rm test-runner
+	docker compose -f docker-compose.test.yml down -v
 
 migrate:  ## Apply all migrations
 	$(DOCKER_EXEC) $(ALEMBIC_CMD) upgrade head
